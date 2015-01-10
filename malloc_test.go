@@ -7,11 +7,8 @@ type Node struct {
         next *Node
 }
 
-func (n *Node) Next() Object {
-        if n.next != nil {
-                return n.next
-        }
-        return nil
+func (n *Node) Children() []Object {
+        return []Object{n.next}
 }
 
 func NewNode() Object {
@@ -41,5 +38,4 @@ func TestMalloc(t *testing.T) {
         if stat.Total != 6 && stat.Free != 5 {
                 t.Fatal("status error:%v", stat)
         }
-
 }

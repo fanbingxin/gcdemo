@@ -6,7 +6,7 @@ import (
 )
 
 type Object interface {
-        Next() Object
+        Children() []Object
 }
 
 type Stat struct {
@@ -101,12 +101,15 @@ func (l *Allocator) getFreeObject() Object {
 }
 
 func (l *Allocator) mark(n Object) {
-        for n != nil {
-                // we have marked this object
-                if l.all[n] {
-                        return
-                }
-                l.all[n] = true
-                n = n.Next()
+        if n == nil {
+                return
+        }
+        marked, ok := l.all[n]
+        if !ok || marked {
+                return
+        }
+        l.all[n] = true
+        for _, child := range n.Children() {
+                l.mark(child)
         }
 }
