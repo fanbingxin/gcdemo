@@ -32,9 +32,14 @@ func TestMalloc(t *testing.T) {
                 n.val = i
                 n = n.next
         }
-        if stat.Total != 1 && stat.Free != 0 {
+        stat = l.Status()
+        if stat.Total != 6 && stat.Free != 0 {
                 t.Fatal("status error:%v", stat)
         }
         root.next = nil
-        l.Malloc()
+        l.GC()
+        if stat.Total != 6 && stat.Free != 5 {
+                t.Fatal("status error:%v", stat)
+        }
+
 }
