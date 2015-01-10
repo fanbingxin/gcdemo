@@ -2,26 +2,27 @@ package gc
 
 import "container/list"
 
-type Node struct {
-        Random *Node
-        Next   *Node
+type Node interface {
+        Next() Node
 }
 
 type Allocator struct {
-        free *list.List
-        root map[*Node]bool
-        all  map[*Node]bool
+        free  *list.List
+        root  map[Node]bool
+        all   map[Node]bool
+        alloc func() Node
 }
 
-func NewAllocator() *Allocator {
+func NewAllocator(alloc func() Node) *Allocator {
         return &Allocator{
-                free: list.New(),
-                root: make(map[*Node]bool),
-                all:  make(map[*Node]bool),
+                free:  list.New(),
+                root:  make(map[Node]bool),
+                all:   make(map[Node]bool),
+                alloc: alloc,
         }
 }
 
-func (l *Allocator) Malloc() *Node {
+func (l *Allocator) Malloc() Node {
         n := l.getFreeNode()
         if n != nil {
                 return n
@@ -36,12 +37,12 @@ func (l *Allocator) Malloc() *Node {
         }
 
         // still no free node
-        n = new(Node)
+        n = l.alloc()
         l.all[n] = false
         return n
 }
 
-func (l *Allocator) Root(n *Node) {
+func (l *Allocator) Root(n Node) {
         _, ok := l.root[n]
         if ok {
                 return
@@ -49,7 +50,7 @@ func (l *Allocator) Root(n *Node) {
         l.root[n] = true
 }
 
-func (l *Allocator) Unroot(n *Node) {
+func (l *Allocator) Unroot(n Node) {
         delete(l.root, n)
 }
 
@@ -72,16 +73,16 @@ func (l *Allocator) GC() {
         }
 }
 
-func (l *Allocator) getFreeNode() *Node {
+func (l *Allocator) getFreeNode() Node {
         elem := l.free.Back()
         if elem == nil {
                 return nil
         }
         l.free.Remove(elem)
-        return elem.Value.(*Node)
+        return elem.Value.(Node)
 }
 
-func (l *Allocator) mark(n *Node) {
+func (l *Allocator) mark(n Node) {
         if n == nil {
                 return
         }
@@ -90,5 +91,5 @@ func (l *Allocator) mark(n *Node) {
                 return
         }
         l.all[n] = true
-        l.mark(n.Next)
+        l.mark(n.Next())
 }
