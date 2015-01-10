@@ -2,28 +2,28 @@ package gc
 
 import "container/list"
 
-type Node interface {
-        Next() Node
+type Object interface {
+        Next() Object
 }
 
 type Allocator struct {
         free  *list.List
-        root  map[Node]bool
-        all   map[Node]bool
-        alloc func() Node
+        root  map[Object]bool
+        all   map[Object]bool
+        alloc func() Object
 }
 
-func NewAllocator(alloc func() Node) *Allocator {
+func NewAllocator(alloc func() Object) *Allocator {
         return &Allocator{
                 free:  list.New(),
-                root:  make(map[Node]bool),
-                all:   make(map[Node]bool),
+                root:  make(map[Object]bool),
+                all:   make(map[Object]bool),
                 alloc: alloc,
         }
 }
 
-func (l *Allocator) Malloc() Node {
-        n := l.getFreeNode()
+func (l *Allocator) Malloc() Object {
+        n := l.getFreeObject()
         if n != nil {
                 return n
         }
@@ -31,7 +31,7 @@ func (l *Allocator) Malloc() Node {
         l.GC()
 
         // try again
-        n = l.getFreeNode()
+        n = l.getFreeObject()
         if n != nil {
                 return n
         }
@@ -42,7 +42,7 @@ func (l *Allocator) Malloc() Node {
         return n
 }
 
-func (l *Allocator) Root(n Node) {
+func (l *Allocator) Root(n Object) {
         _, ok := l.root[n]
         if ok {
                 return
@@ -50,7 +50,7 @@ func (l *Allocator) Root(n Node) {
         l.root[n] = true
 }
 
-func (l *Allocator) Unroot(n Node) {
+func (l *Allocator) Unroot(n Object) {
         delete(l.root, n)
 }
 
@@ -60,12 +60,12 @@ func (l *Allocator) GC() {
                 l.all[k] = false
         }
 
-        // mark root nodes recursively
+        // mark root objects recursively
         for n := range l.root {
                 l.mark(n)
         }
 
-        // sweep unmarked nodes
+        // sweep unmarked objects
         for k := range l.all {
                 if !l.all[k] {
                         l.free.PushBack(k)
@@ -73,20 +73,20 @@ func (l *Allocator) GC() {
         }
 }
 
-func (l *Allocator) getFreeNode() Node {
+func (l *Allocator) getFreeObject() Object {
         elem := l.free.Back()
         if elem == nil {
                 return nil
         }
         l.free.Remove(elem)
-        return elem.Value.(Node)
+        return elem.Value.(Object)
 }
 
-func (l *Allocator) mark(n Node) {
+func (l *Allocator) mark(n Object) {
         if n == nil {
                 return
         }
-        // we have marked this node
+        // we have marked this object
         if l.all[n] {
                 return
         }
