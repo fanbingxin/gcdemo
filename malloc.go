@@ -1,9 +1,17 @@
 package gc
 
-import "container/list"
+import (
+        "container/list"
+        "log"
+)
 
 type Object interface {
         Next() Object
+}
+
+type Stat struct {
+        Free  int
+        Total int
 }
 
 type Allocator struct {
@@ -42,6 +50,13 @@ func (l *Allocator) Malloc() Object {
         return n
 }
 
+func (l *Allocator) Status() *Stat {
+        return &Stat{
+                Free:  l.free.Len(),
+                Total: len(l.all),
+        }
+}
+
 func (l *Allocator) Root(n Object) {
         _, ok := l.root[n]
         if ok {
@@ -65,12 +80,15 @@ func (l *Allocator) GC() {
                 l.mark(n)
         }
 
+        free := 0
         // sweep unmarked objects
         for k := range l.all {
                 if !l.all[k] {
+                        free++
                         l.free.PushBack(k)
                 }
         }
+        log.Printf("GC, free %d objects, current %d objects", free, len(l.all))
 }
 
 func (l *Allocator) getFreeObject() Object {
@@ -83,13 +101,12 @@ func (l *Allocator) getFreeObject() Object {
 }
 
 func (l *Allocator) mark(n Object) {
-        if n == nil {
-                return
+        for n != nil {
+                // we have marked this object
+                if l.all[n] {
+                        return
+                }
+                l.all[n] = true
+                n = n.Next()
         }
-        // we have marked this object
-        if l.all[n] {
-                return
-        }
-        l.all[n] = true
-        l.mark(n.Next())
 }
