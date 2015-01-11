@@ -20,7 +20,7 @@ func TestMalloc(t *testing.T) {
         root := l.Malloc().(*Node)
         l.Root(root)
         stat := l.Status()
-        if stat.Total != 1 && stat.Free != 0 {
+        if stat.Total != 1 || stat.Free != 0 {
                 t.Fatal("status error:%v", stat)
         }
         n := root
@@ -30,12 +30,32 @@ func TestMalloc(t *testing.T) {
                 n = n.next
         }
         stat = l.Status()
-        if stat.Total != 6 && stat.Free != 0 {
+        if stat.Total != 6 || stat.Free != 0 {
                 t.Fatal("status error:%v", stat)
         }
         root.next = nil
         l.GC()
-        if stat.Total != 6 && stat.Free != 5 {
+        stat = l.Status()
+        if stat.Total != 6 || stat.Free != 5 {
+                t.Fatal("status error:%v", stat)
+        }
+}
+
+func TestCircleRef(t *testing.T) {
+        l := NewAllocator(NewNode)
+        root := l.Malloc().(*Node)
+        l.Root(root)
+
+        n0 := l.Malloc().(*Node)
+        root.next = n0
+        n1 := l.Malloc().(*Node)
+        n0.next = n1
+        n1.next = n0
+
+        root.next = nil
+        l.GC()
+        stat := l.Status()
+        if stat.Total != 3 || stat.Free != 2 {
                 t.Fatal("status error:%v", stat)
         }
 }
